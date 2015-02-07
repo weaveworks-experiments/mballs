@@ -22,3 +22,10 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Emacs backup files
+*~
+
+# Project specific
+mballs
+err.log
