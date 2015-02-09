@@ -347,7 +347,7 @@ func main() {
 	receiveBall := func(ball Object) {
 		x := 0
 		if ball.SpeedX() < 0 {
-			x = cols
+			x = (cols - ball_width) * 100
 		}
 		ball.SetX(x)
 		ball.NewWindow()
@@ -395,7 +395,11 @@ loop:
 			for _, obj := range objects {
 				if ball, ok := obj.(*Ball); ok {
 					if ball.SpeedX() == 0 {
-						ball.KickX(10)
+						speed := 10
+						if peer.info.ID < myID {
+							speed = -10
+						}
+						ball.KickX(speed)
 						break
 					}
 				}
