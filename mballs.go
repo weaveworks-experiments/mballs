@@ -223,22 +223,15 @@ func findInterface(ifaceName string) (iface *net.Interface, err error) {
 }
 
 func main() {
-	f, err := os.Create("err.log")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	log.SetOutput(f)
-
 	var (
 		ifaceName string
+		err       error
 	)
 	flag.StringVar(&ifaceName, "iface", "", "name of interface for multicasting")
 	flag.Parse()
 	var iface *net.Interface = nil
 	if ifaceName != "" {
-		iface, err = EnsureInterface(ifaceName, 5)
+		iface, err = EnsureInterface(ifaceName, 10)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -412,6 +405,8 @@ loop:
 				addBall()
 			case 'r':
 				stdscr.Refresh()
+			case 'x':
+				stdscr.Clear()
 			case 'q':
 				break loop
 			}
