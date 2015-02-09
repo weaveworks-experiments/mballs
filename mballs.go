@@ -18,6 +18,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -42,14 +43,16 @@ func listen(iface *net.Interface) (*net.UDPConn, error) {
 	return conn, err
 }
 
-const ball_size = 3
+const ball_height = 4
+const ball_width = 12
 const gravity = 1200 // delta-v per second
 const updates_per_sec = 20
 
 var ball_ascii = []string{
-	`***`,
-	`***`,
-	`***`,
+	` .-----.`,
+	` |:: /\__/\`,
+	`~|__( ^ .^ )`,
+	`  ""   ""`,
 }
 
 type Object interface {
@@ -57,7 +60,6 @@ type Object interface {
 	Draw(*gc.Window)
 	Update(x int, y int, offedge func(obj Object))
 	SetX(x int)
-	KickX(dx int)
 	SpeedX() int
 	Height() int
 	NewWindow()
@@ -71,7 +73,7 @@ type Ball struct {
 }
 
 func newBallWindow(y, x int, c int) *gc.Window {
-	w, err := gc.NewWindow(ball_size, ball_size, y, x)
+	w, err := gc.NewWindow(ball_height, ball_width, y, x)
 	if err != nil {
 		log.Fatal("newBall:", err)
 	}
@@ -115,14 +117,70 @@ func (s *Ball) Update(my, mx int, offedge func(obj Object)) {
 		offedge(s)
 		s.X = 0
 		s.Sx = -s.Sx
-	} else if (s.X + ball_size*100) > mx*100 {
+	} else if (s.X + ball_width*100) > mx*100 {
 		offedge(s)
-		s.X = (mx - ball_size) * 100
+		s.X = (mx - ball_width) * 100
 		s.Sx = -s.Sx
 	}
 	s.Sy -= int(gravity / updates_per_sec)
-	s.w.MoveWindow(my-ball_size-s.Y/100, s.X/100)
+	s.w.MoveWindow(my-ball_height-s.Y/100, s.X/100)
 }
+
+type Peer struct {
+	id        byte
+	addr      net.Addr
+	lastHeard time.Time
+}
+
+var allPeers map[byte]*Peer = make(map[byte]*Peer)
+
+// PeerSlice attaches the methods of Interface to []*Peer, sorting in increasing order of id.
+type PeerSlice []*Peer
+
+func (p PeerSlice) Len() int           { return len(p) }
+func (p PeerSlice) Less(i, j int) bool { return p[i].id < p[j].id }
+func (p PeerSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+//---
+type Peers struct {
+	w *gc.Window
+}
+
+func newPeers(y, x int) *Peers {
+	w, err := gc.NewWindow(6, 20, y, x)
+	if err != nil {
+		log.Fatal("newPeers:", err)
+	}
+	return &Peers{w}
+}
+
+func (p *Peers) NewWindow() {
+	// not implemented
+}
+
+func (p *Peers) SetX(x int)  {}
+func (p *Peers) SpeedX() int { return 0 }
+func (p *Peers) Height() int { return ball_height }
+func (p *Peers) Cleanup()    { p.w.Delete() }
+
+func (p *Peers) Draw(w *gc.Window) {
+	w.MovePrintln(0, 0, "hello", len(allPeers))
+	var peers PeerSlice
+	for _, peer := range allPeers {
+		peers = append(peers, peer)
+	}
+	sort.Sort(peers)
+	for i, peer := range peers {
+		w.MovePrintln(i, 0, peer.addr)
+	}
+	w.Overlay(p.w)
+}
+
+func (p *Peers) Update(my, mx int, offedge func(obj Object)) {
+	// no-op
+}
+
+//---
 
 var objects = make([]Object, 0, 16)
 
@@ -214,12 +272,12 @@ func main() {
 
 	conn, _ := listen(iface)
 	ball_incoming := make(chan Object)
-	ball_wanted := make(chan byte)
+	ball_wanted := make(chan *Peer)
 	go func() {
 		const UDPbufSize = 1024
 		m := make([]byte, UDPbufSize)
 		for {
-			n, _, err := conn.ReadFrom(m)
+			n, addr, err := conn.ReadFrom(m)
 			if err != nil {
 				log.Fatal("multicast read:", err)
 			}
@@ -231,7 +289,7 @@ func main() {
 					var id byte
 					decoder.Decode(&id)
 					if id != myID {
-						ball_wanted <- id
+						ball_wanted <- &Peer{id, addr, time.Now()}
 					}
 				case msgSendBall:
 					var ball Ball
@@ -251,6 +309,10 @@ func main() {
 	if err != nil {
 		log.Fatal("send socket create:", err)
 	}
+
+	pp := newPeers(0, 0)
+	objects = append(objects, pp)
+
 	sendWant := func() {
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
@@ -295,8 +357,11 @@ loop:
 		stdscr.Refresh()
 		select {
 		case <-slowTicker.C:
-			if len(objects) == 0 {
-				sendWant()
+			sendWant()
+			for key, peer := range allPeers {
+				if peer.lastHeard.Add(time.Second).Before(time.Now()) {
+					delete(allPeers, key)
+				}
 			}
 		case <-frameTicker.C:
 			y, x := stdscr.MaxYX()
@@ -306,12 +371,15 @@ loop:
 				}
 			})
 			drawObjects(stdscr)
-		case id := <-ball_wanted:
-			lastWantedBall = id
-			for _, ball := range objects {
-				if ball.SpeedX() == 0 {
-					ball.KickX(10)
-					break
+		case peer := <-ball_wanted:
+			allPeers[peer.id] = peer
+			lastWantedBall = peer.id
+			for _, obj := range objects {
+				if ball, ok := obj.(*Ball); ok {
+					if ball.SpeedX() == 0 {
+						ball.KickX(10)
+						break
+					}
 				}
 			}
 		case ball := <-ball_incoming:
