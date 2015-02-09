@@ -126,8 +126,13 @@ func (s *Ball) Update(my, mx int, offedge func(obj Object)) {
 	s.w.MoveWindow(my-ball_height-s.Y/100, s.X/100)
 }
 
+type PeerInfo struct {
+	ID   byte
+	Name string
+}
+
 type Peer struct {
-	id        byte
+	info      PeerInfo
 	addr      net.Addr
 	lastHeard time.Time
 }
@@ -138,7 +143,7 @@ var allPeers map[byte]*Peer = make(map[byte]*Peer)
 type PeerSlice []*Peer
 
 func (p PeerSlice) Len() int           { return len(p) }
-func (p PeerSlice) Less(i, j int) bool { return p[i].id < p[j].id }
+func (p PeerSlice) Less(i, j int) bool { return p[i].info.ID < p[j].info.ID }
 func (p PeerSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 //---
@@ -164,14 +169,14 @@ func (p *Peers) Height() int { return ball_height }
 func (p *Peers) Cleanup()    { p.w.Delete() }
 
 func (p *Peers) Draw(w *gc.Window) {
-	w.MovePrintln(0, 0, "hello", len(allPeers))
+	w.MovePrintln(0, 0, "Members: ", len(allPeers))
 	var peers PeerSlice
 	for _, peer := range allPeers {
 		peers = append(peers, peer)
 	}
 	sort.Sort(peers)
 	for i, peer := range peers {
-		w.MovePrintln(i, 0, peer.addr)
+		w.MovePrintln(i+1, 0, peer.addr, peer.info.Name)
 	}
 	w.Overlay(p.w)
 }
@@ -268,7 +273,6 @@ func main() {
 
 	rand.Seed(time.Now().Unix())
 	myID := byte(rand.Intn(256))
-	var lastWantedBall byte = 0
 
 	conn, _ := listen(iface)
 	ball_incoming := make(chan Object)
@@ -286,10 +290,10 @@ func main() {
 				decoder := gob.NewDecoder(reader)
 				switch m[0] {
 				case msgWantBall:
-					var id byte
-					decoder.Decode(&id)
-					if id != myID {
-						ball_wanted <- &Peer{id, addr, time.Now()}
+					var info PeerInfo
+					decoder.Decode(&info)
+					if info.ID != myID {
+						ball_wanted <- &Peer{info, addr, time.Now()}
 					}
 				case msgSendBall:
 					var ball Ball
@@ -316,7 +320,8 @@ func main() {
 	sendWant := func() {
 		buf := new(bytes.Buffer)
 		enc := gob.NewEncoder(buf)
-		enc.Encode(myID)
+		hostname, _ := os.Hostname()
+		enc.Encode(PeerInfo{myID, hostname})
 		sendconn.WriteTo(append([]byte{msgWantBall}, buf.Bytes()...), ipv4Addr)
 	}
 	sendBallTo := func(ball Object, dest byte) {
@@ -332,7 +337,6 @@ func main() {
 			}
 		}
 		ball.Cleanup()
-		lastWantedBall = 0
 	}
 
 	addBall := func() {
@@ -366,14 +370,21 @@ loop:
 		case <-frameTicker.C:
 			y, x := stdscr.MaxYX()
 			updateObjects(y, x, func(obj Object) {
-				if lastWantedBall != 0 {
-					sendBallTo(obj, lastWantedBall)
+				if len(allPeers) != 0 {
+					// pick a peer at random
+					c := rand.Intn(len(allPeers))
+					for _, p := range allPeers {
+						if c == 0 {
+							sendBallTo(obj, p.info.ID)
+							break
+						}
+						c--
+					}
 				}
 			})
 			drawObjects(stdscr)
 		case peer := <-ball_wanted:
-			allPeers[peer.id] = peer
-			lastWantedBall = peer.id
+			allPeers[peer.info.ID] = peer
 			for _, obj := range objects {
 				if ball, ok := obj.(*Ball); ok {
 					if ball.SpeedX() == 0 {
