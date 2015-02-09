@@ -78,6 +78,7 @@ func newBallWindow(y, x int, c int) *gc.Window {
 		log.Fatal("newBall:", err)
 	}
 	w.ColorOn(int16(c))
+	w.AttrOn(gc.A_BOLD)
 	for i := 0; i < len(ball_ascii); i++ {
 		w.MovePrint(i, 0, ball_ascii[i])
 	}
