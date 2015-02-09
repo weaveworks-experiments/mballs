@@ -366,6 +366,13 @@ loop:
 				if peer.lastHeard.Add(time.Second).Before(time.Now()) {
 					delete(allPeers, key)
 				}
+				if len(allPeers) == 0 {
+					for _, obj := range objects {
+						if ball, ok := obj.(*Ball); ok {
+							ball.KickX(0)
+						}
+					}
+				}
 			}
 		case <-frameTicker.C:
 			y, x := stdscr.MaxYX()
