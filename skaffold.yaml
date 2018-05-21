@@ -1,0 +1,12 @@
+apiVersion: skaffold/v1alpha2
+kind: Config
+
+## Default profile for use with `skaffold dev`
+build:
+  artifacts:
+  - imageName: weaveworks/multicast-demo
+    docker:
+      dockerfilePath: ./Dockerfile
+deploy:
+  kubectl: { manifests: [ deployment.yaml ] }
+
