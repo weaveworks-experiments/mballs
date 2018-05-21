@@ -63,7 +63,7 @@ func main() {
 	flag.Parse()
 	var iface *net.Interface = nil
 	if ifaceName != "" {
-		iface, err = EnsureInterface(ifaceName, 10)
+		iface, err = ensureInterface(ifaceName, 10)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -149,7 +149,7 @@ func multicastListen(iface *net.Interface) (*net.UDPConn, error) {
 	return conn, err
 }
 
-func EnsureInterface(ifaceName string, wait int) (iface *net.Interface, err error) {
+func ensureInterface(ifaceName string, wait int) (iface *net.Interface, err error) {
 	if iface, err = findInterface(ifaceName); err == nil || wait == 0 {
 		return
 	}
