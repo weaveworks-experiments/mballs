@@ -4,7 +4,7 @@ kind: Config
 ## Default profile for use with `skaffold dev`
 build:
   artifacts:
-  - imageName: weaveworks/multicast-demo
+  - imageName: weaveworksdemos/multicast
     docker:
       dockerfilePath: ./Dockerfile
 deploy:

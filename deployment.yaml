@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: multicast-demo
-        image: weaveworks/multicast-demo
+        image: weaveworksdemos/multicast
         ports:
         - name: http
           containerPort: 8080
