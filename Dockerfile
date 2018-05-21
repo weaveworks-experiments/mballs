@@ -6,6 +6,7 @@ RUN apk add --no-cache --initdb --root /out \
     alpine-baselayout \
     busybox \
     ca-certificates \
+    curl \
     && true
 
 ENV APP $GOPATH/src/github.com/weaveworks-experiments/multicast-demo
@@ -22,4 +23,4 @@ FROM scratch
 CMD skaffold
 COPY --from=build  /out /
 CMD []
-ENTRYPOINT ["multicast-demo", "-iface", "ethwe"]
+ENTRYPOINT ["multicast-demo"]
