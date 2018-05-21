@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,12 +42,14 @@ type Peer struct {
 var allPeers map[int]*Peer = make(map[int]*Peer)
 var peersLock sync.Mutex
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func listPeers() []string {
 	peersLock.Lock()
 	defer peersLock.Unlock()
+	peers := []string{}
 	for _, p := range allPeers {
-		fmt.Fprintf(w, "%s %s\n", p.info.Name, p.addr)
+		peers = append(peers, fmt.Sprintf("%s %s\n", p.info.Name, p.addr))
 	}
+	return peers
 }
 
 func main() {
@@ -55,7 +58,7 @@ func main() {
 		httpPort  int
 		err       error
 	)
-	flag.StringVar(&ifaceName, "iface", "", "name of interface for multicasting")
+	flag.StringVar(&ifaceName, "iface", "eth0", "name of interface for multicasting")
 	flag.IntVar(&httpPort, "p", 8080, "port to listen for http")
 	flag.Parse()
 	var iface *net.Interface = nil
@@ -88,17 +91,24 @@ func main() {
 	}
 
 	ticker := time.NewTicker(time.Second)
+	slowerTicker := time.NewTicker(20 * time.Second)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				sendInfo(myID, sendconn)
 				expirePeers()
+			case <-slowerTicker.C:
+				for _, p := range listPeers() {
+					log.Printf(p)
+				}
 			}
 		}
 	}()
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintf(w, strings.Join(listPeers(), "\n"))
+	})
 	err = http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 	log.Fatal(err)
 }
