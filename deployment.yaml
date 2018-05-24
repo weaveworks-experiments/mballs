@@ -6,7 +6,7 @@ metadata:
   labels:
     app: multicast-demo
 spec:
-  replicas: 3
+  replicas: 12
   selector:
     matchLabels:
      app: multicast-demo
