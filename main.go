@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -29,6 +29,15 @@ var (
 		IP:   net.ParseIP("224.1.2.3"),
 		Port: 7777,
 	}
+
+	peerCount = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "multicast",
+			Subsystem: "peers",
+			Name:      "total",
+			Help:      "The total number of multicast peers.",
+		},
+	)
 )
 
 type PeerInfo struct {
@@ -52,6 +61,7 @@ func listPeers() []string {
 	for _, p := range allPeers {
 		peers = append(peers, fmt.Sprintf("%s %s\n", p.info.Name, p.addr))
 	}
+	peerCount.Set(float64(len(peers)))
 	return peers
 }
 
@@ -92,6 +102,8 @@ func main() {
 	if err != nil {
 		log.Fatal("send socket create:", err)
 	}
+
+	prometheus.MustRegister(peerCount)
 
 	ticker := time.NewTicker(time.Second)
 	slowerTicker := time.NewTicker(20 * time.Second)
