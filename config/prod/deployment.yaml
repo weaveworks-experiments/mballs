@@ -5,10 +5,6 @@ metadata:
   name: multicast-demo
   labels:
     app: multicast-demo
-  annotations:
-    flux.weave.works/locked_user: ilya <ilya@weave.works>
-    flux.weave.works/locked: 'true'
-    flux.weave.works/locked_msg: '"dev"'
 spec:
   replicas: 12
   selector:
