@@ -8,5 +8,5 @@ build:
     docker:
       dockerfilePath: ./Dockerfile
 deploy:
-  kubectl: { manifests: [ deployment.yaml ] }
+  kubectl: { manifests: [ config/prod/deployment.yaml ] }
 
