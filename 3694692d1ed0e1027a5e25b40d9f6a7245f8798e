@@ -1,0 +1,1 @@
+{"jobID":"800c2abd-4dc5-38c5-978e-3b771aa0282a","spec":{"type":"policy","cause":{"Message":"gtg","User":"ilya \u003cilya@weave.works\u003e"},"spec":{"default:deployment/multicast-demo":{"add":null,"remove":{"locked":"true","locked_msg":"\"gtg\"","locked_user":"ilya \u003cilya@weave.works\u003e"}}}},"result":null}
