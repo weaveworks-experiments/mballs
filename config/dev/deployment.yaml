@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multicast-demo-dev
+  labels:
+    app: multicast-demo-dev
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: multicast-demo-dev
+  template:
+    metadata:
+      labels:
+        app: multicast-demo-dev
+    spec:
+      containers:
+      - name: multicast-demo
+        image: weaveworksdemos/multicast:3694692-dirty-5955a4d
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
