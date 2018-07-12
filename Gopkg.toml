@@ -1,0 +1,9 @@
+# Pin to v0.9.0-pre1 until there is a more recent stable release:
+#   https://github.com/prometheus/client_golang/issues/375
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "v0.9.0-pre1"
+
+[prune]
+  go-tests = true
+  unused-packages = true
