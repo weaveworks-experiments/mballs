@@ -21,7 +21,7 @@ import (
 	"time"
 
 	_ "github.com/prometheus/client_golang/prometheus"
-	_ "github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -112,6 +112,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(w, strings.Join(listPeers(), "\n"))
 	})
+	http.Handle("/metrics", promhttp.Handler())
 	err = http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil)
 	log.Fatal(err)
 }
