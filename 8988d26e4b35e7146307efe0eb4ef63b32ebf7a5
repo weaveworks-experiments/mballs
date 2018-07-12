@@ -1,0 +1,1 @@
+{"jobID":"972417a5-c098-5b68-6f8f-281806a69454","spec":{"type":"policy","cause":{"Message":"dev","User":"ilya \u003cilya@weave.works\u003e"},"spec":{"default:deployment/multicast-demo":{"add":{"locked":"true","locked_msg":"\"dev\"","locked_user":"ilya \u003cilya@weave.works\u003e"},"remove":null}}},"result":null}
